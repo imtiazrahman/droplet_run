@@ -40,7 +40,7 @@
                     state=started
       with_items: "{{ created_droplets.results }}"
 
-#PING CHECK HOST CONNECTIVITY
+#CHECK HOST CONNECTIVITY
 - hosts: launched 
   gather_facts: no
   become: yes
