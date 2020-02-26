@@ -1,0 +1,53 @@
+---
+
+- name: PLAY for creating dropltes in DO
+  hosts: do_server
+  connection: local
+  gather_facts: false
+
+  vars:
+     ansible_python_interpreter: /usr/bin/python
+     do_token: '' #MY-DO--TOKEN Need to change the value here
+
+  tasks:
+    - name: create droplets on region SGP1
+      digital_ocean_droplet:
+        oauth_token: "{{ do_token }}"
+        unique_name: yes
+        region: sgp1
+        image: ubuntu-18-04-x64
+        wait_timeout: 500
+        name: "{{ item }}"
+        size_id: s-1vcpu-1gb
+        ipv6: yes
+        state: present
+        ssh_keys: [ '' ] #Need to change the value here
+        wait: yes
+      register: created_droplets
+      with_items:
+        - server1
+        - server2
+        - server3
+
+    - name: Add new droplet to host group
+      local_action: add_host hostname={{ item.data.ip_address }} groupname=launched ansible_ssh_common_args='-o StrictHostKeyChecking=no'
+      with_items: "{{ created_droplets.results }}"
+
+    - name: Wait for SSH to come up
+      local_action: wait_for
+                    host={{ item.data.ip_address }}
+                    port=22
+                    state=started
+      with_items: "{{ created_droplets.results }}"
+
+#PING CHECK HOST CONNECTIVITY
+- hosts: launched 
+  gather_facts: no
+  become: yes
+  become_user: root
+
+  vars:
+    ansible_ssh_private_key_file: "PUT_YOUR_KEY_FILE_LOCATION/id_rsa"
+
+  tasks:
+  - ping:
